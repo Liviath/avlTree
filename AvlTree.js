@@ -15,6 +15,7 @@ export default class AvlTree {
 
         if (!this.rootNode) {
             this.rootNode = new TreeNode(value);
+            this.rootNode.setIsBlack(true);
         } else {
             if (!this.hasNode(this.rootNode, value)) {
                 const parentNode = this.findParent(this.rootNode, value);

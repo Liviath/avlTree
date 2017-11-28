@@ -10,6 +10,7 @@ export default class TreeNode {
         this.right = null;
         this.value = value;
         this.parent = parent;
+        this.isBlack = false;
     }
 
     createChild(value) {
@@ -23,8 +24,76 @@ export default class TreeNode {
             newNode = this.right;
         }
 
-        if(this.parent) {
-            this.parent.balance(newNode);
+        newNode.checkForViolations();
+    }
+
+    checkForViolations(addedNode) {
+        const isRoot = !this.parent;
+        const uncle = this.getUncle();
+        const grandParent = this.getGrandparent();
+        const hasViolations = this.parent && !this.parent.isBlack;
+
+        if(isRoot) {
+            this.isBlack = true;
+        } else if(uncle && !uncle.isBlack && hasViolations) {
+            grandParent.left.isBlack = true;
+            grandParent.right.isBlack = true;
+            grandParent.isBlack = false;
+            grandParent.checkForViolations();
+        } else if(uncle && uncle.isBlack && hasViolations) {
+            this.fixTriangle();
+            this.parent.isBlack = true;
+        } else if(hasViolations && grandParent) {
+            this.fixTriangle();
+        }
+    }
+
+    getGrandparent() {
+        return this.parent && this.parent.parent;
+    }
+
+    getUncle() {
+        const gp = this.getGrandparent();
+        if(gp) {
+            if(gp.left === this.parent) {
+                return gp.right;
+            } else if(gp.right === this.parent) {
+                return gp.left;
+            }
+        }
+    }
+
+    getIsTriangle() {
+        const gp = this.getGrandparent();
+        if(gp) {
+            if(this.parent === gp.left) {
+                return this === this.parent.right;
+            } else if (this.parent === gp.right) {
+                return this === this.parent.left;
+            }
+        }
+
+        return false;
+    }
+
+    fixTriangle() {
+        const grandParent = this.getGrandparent();
+
+        const isRightSubtree = grandParent.right === this.parent;
+
+        if(this.getIsTriangle()) {
+            if(this.parent.left === this) {
+                this.parent.rotateRight();
+            } else {
+                this.parent.rotateLeft();
+            }
+        }
+
+
+        if(isRightSubtree) {
+            grandParent.rotateLeft();
+        } else {
+            grandParent.rotateRight();
         }
     }
 
@@ -59,6 +128,7 @@ export default class TreeNode {
         this.right = this.right.right;
 
         this.left = new TreeNode(tmpValue, this);
+        this.left.isBlack = tmpValue.isBlack;
 
         if(tmpRight.left) {
             this.left.right = tmpRight.left;
@@ -86,6 +156,7 @@ export default class TreeNode {
         this.left = this.left.left;
 
         this.right = new TreeNode(tmpValue, this);
+        this.right.isBlack = tmpValue.isBlack;
 
         if(tmpLeft.right) {
             this.right.left = tmpLeft.right;
@@ -106,7 +177,6 @@ export default class TreeNode {
     getBalanceFactor() {
         return (this.left ? this.left.getMaxHeight(1) : 0) - (this.right ? this.right.getMaxHeight(1) : 0);
     }
-
 
     balance(addedNode, recusrive = true) {
         const balanceFactor = this.getBalanceFactor();
@@ -143,24 +213,17 @@ export default class TreeNode {
     }
 
     /**
-     * Prints the tree in order the nodes are in the tree to be inserted in a bst in the same order.
-     */
-    printBst() {
-        console.log(this.value);
-        if(this.left) {
-            this.left.printBst();
-        }
-        if(this.right) {
-            this.right.printBst();
-        }
-    }
-
-    /**
      * Prints the tree in the canvas
      */
     printTree(canvas, height = 50, maxLeft = 0, maxRight = 1500, fontSize = 48) {
         canvas.font = `${fontSize}px serif`;
-        canvas.fillText(this.value, (maxLeft + maxRight) / 2, height);
+        if(!this.isBlack) {
+            canvas.fillStyle = '#c30101';
+        } else {
+            canvas.fillStyle = '#000'
+        }
+        const width = canvas.measureText(this.value).width
+        canvas.fillText(this.value, (maxLeft + maxRight) / 2 - width/2, height);
 
         if(this.left) {
             const childMaxRight = (maxLeft + maxRight) / 2;
@@ -180,5 +243,12 @@ export default class TreeNode {
             canvas.lineTo((childMaxLeft + maxRight) / 2 + 10, height + 50);
             canvas.stroke();
         }
+    }
+
+    /**
+     * updates the isBlack variable
+     */
+    setIsBlack(isBlack) {
+        this.isBlack = isBlack;
     }
 }
